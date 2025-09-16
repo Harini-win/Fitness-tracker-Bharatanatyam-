@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .log { background: #f0f0f0; padding: 10px; margin: 10px 0; max-height: 300px; overflow-y: auto; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Audio Test Page</h1>
+    
+    <button onclick="testDirectAudio()">Test /test_audio Endpoint</button>
+    <button onclick="testDanceAudio()">Test Araimandi Audio</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <div id="log" class="log"></div>
+    
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : (type === 'success' ? 'success' : '');
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        async function testDirectAudio() {
+            log('Testing /test_audio endpoint...');
+            try {
+                const response = await fetch('http://127.0.0.1:5000/test_audio');
+                const data = await response.json();
+                
+                log(`Response: ${JSON.stringify(data)}`, 'info');
+                
+                if (data.audio && data.audio.length > 0) {
+                    log(`Audio received! Length: ${data.audio_length}`, 'success');
+                    
+                    // Try to play the audio
+                    const audioSrc = `data:audio/wav;base64,${data.audio}`;
+                    const audio = new Audio(audioSrc);
+                    
+                    audio.onloadeddata = () => log('Audio loaded successfully', 'success');
+                    audio.onplay = () => log('Audio started playing', 'success');
+                    audio.onended = () => log('Audio finished playing', 'success');
+                    audio.onerror = (e) => log(`Audio playback error: ${e}`, 'error');
+                    
+                    await audio.play();
+                } else {
+                    log('No audio received or empty audio', 'error');
+                }
+            } catch (error) {
+                log(`Error: ${error}`, 'error');
+            }
+        }
+        
+        async function testDanceAudio() {
+            log('Testing dance frame endpoint...');
+            try {
+                const response = await fetch('http://127.0.0.1:5000/process_dance_frame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        exercise: 'araimandi',
+                        image: 'data:image/jpeg;base64,fake_image_data' // Fake image for testing
+                    })
+                });
+                
+                const data = await response.json();
+                log(`Dance response: ${JSON.stringify(data)}`, 'info');
+                
+                if (data.audio && data.audio.length > 0) {
+                    log(`Dance audio received! Length: ${data.audio_length}`, 'success');
+                    
+                    const audioSrc = `data:audio/wav;base64,${data.audio}`;
+                    const audio = new Audio(audioSrc);
+                    
+                    audio.onloadeddata = () => log('Dance audio loaded', 'success');
+                    audio.onplay = () => log('Dance audio playing', 'success');
+                    audio.onended = () => log('Dance audio finished', 'success');
+                    audio.onerror = (e) => log(`Dance audio error: ${e}`, 'error');
+                    
+                    await audio.play();
+                } else {
+                    log('No dance audio received', 'error');
+                }
+            } catch (error) {
+                log(`Dance test error: ${error}`, 'error');
+            }
+        }
+        
+        log('Audio test page loaded. Click buttons to test.');
+    </script>
+</body>
+</html>
